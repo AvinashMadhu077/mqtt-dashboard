@@ -196,8 +196,12 @@
   max-width: 300px;
 "></div>
 
-<!-- Audio Element -->
+<!-- Audio Element - UPDATE THIS URL WITH YOUR ACTUAL GITHUB URL -->
 <audio id="alertSound" preload="auto" loop>
+  <!-- Replace the URL below with your actual raw GitHub URL -->
+  <source src="https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO_NAME/main/alert.mp3" type="audio/mpeg">
+  <!-- Fallback for local testing -->
+  <source src="./alert.mp3" type="audio/mpeg">
   <source src="alert.mp3" type="audio/mpeg">
 </audio>
 
@@ -276,8 +280,10 @@ toggleButton.addEventListener('click', function() {
     toggleButton.querySelector('button').style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
     
     // Stop alert sound if playing
-    alertSound.pause();
-    alertSound.currentTime = 0;
+    if (alertSound) {
+      alertSound.pause();
+      alertSound.currentTime = 0;
+    }
     
     // Clear all notifications
     clearAllNotifications();
@@ -357,6 +363,28 @@ function clearAllNotifications() {
   container.innerHTML = '';
 }
 
+/* Fallback alert for when audio fails */
+function showFallbackAlert() {
+  const container = document.getElementById('notificationContainer');
+  const fallback = document.createElement('div');
+  fallback.className = 'notification';
+  fallback.innerHTML = `
+    <div class="notification-title">
+      <span class="notification-icon">⚠️</span>
+      Alert! (Audio unavailable)
+    </div>
+    <div class="notification-message">
+      Threshold exceeded - check sensor readings
+    </div>
+  `;
+  container.appendChild(fallback);
+  setTimeout(() => fallback.classList.add('show'), 10);
+  setTimeout(() => {
+    fallback.classList.remove('show');
+    setTimeout(() => fallback.remove(), 500);
+  }, 5000);
+}
+
 /* Function to check thresholds */
 function checkThresholds(data) {
   if (!alertsEnabled) return;
@@ -398,11 +426,14 @@ function checkThresholds(data) {
   
   // Handle sound alert
   if (currentAlerts.size > 0) {
-    if (alertSound.paused) {
-      alertSound.play().catch(e => console.log('Audio play failed:', e));
+    if (alertSound && alertSound.paused) {
+      alertSound.play().catch(e => {
+        console.error('Audio play failed:', e);
+        showFallbackAlert();
+      });
     }
   } else {
-    if (!alertSound.paused) {
+    if (alertSound && !alertSound.paused) {
       alertSound.pause();
       alertSound.currentTime = 0;
     }
@@ -472,6 +503,15 @@ client.on("message", (t, m) => {
     if(co < 9) { coTag.innerText = "Good"; coTag.className = "status-tag st-dark-good"; }
     else if(co < 20) { coTag.innerText = "Average"; coTag.className = "status-tag st-dark-avg"; }
     else { coTag.innerText = "Bad"; coTag.className = "status-tag st-dark-bad"; }
+});
+
+/* Test audio on load */
+window.addEventListener('load', function() {
+  // Test if audio can be loaded
+  if (alertSound) {
+    alertSound.load();
+    console.log('Alert sound loaded. Ready for playback.');
+  }
 });
 </script>
 </body>
