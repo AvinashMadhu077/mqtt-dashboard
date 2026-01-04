@@ -41,7 +41,9 @@ body {
   box-shadow: 0 15px 40px rgba(0,0,0,.4);
 }
 
-.title { text-align: center; }
+.title {
+  text-align: center;
+}
 
 .title h1 {
   margin: 0;
@@ -196,22 +198,21 @@ footer {
   </div>
 
   <div class="card">
-    <strong>Raw Sensor Data</strong>
+    <strong>Raw Sensor Data Stream</strong>
     <div class="raw" id="raw">--</div>
   </div>
 
   <footer>
-    © 2026 Air Quality Monitoring System
+    © 2026 Air Quality Monitoring System | ESP32 & MQTT
   </footer>
-
 </div>
 
-<!-- 🔊 ALERT BUTTON + AUDIO -->
+<!-- 🔊 ALERT -->
 <button id="enableSoundBtn">🔊 Enable Alerts</button>
 <audio id="alertSound" src="alert.mp3" preload="auto"></audio>
 
 <script>
-/* ===== MQTT CONNECTION ===== */
+/* ===== MQTT ===== */
 const client = mqtt.connect(
   "wss://cd29a7c955164a079ab779cab2f382d7.s1.eu.hivemq.cloud:8884/mqtt",
   {
@@ -222,7 +223,7 @@ const client = mqtt.connect(
 );
 
 client.on("connect", () => {
-  document.getElementById("mqttStatus").innerText = "Connected to MQTT Broker";
+  mqttStatus.innerText = "Connected to MQTT Broker";
   client.subscribe("esp32/sensor");
 });
 
@@ -243,7 +244,7 @@ enableBtn.addEventListener("click", () => {
   });
 });
 
-function checkDangerLevels(data) {
+function checkDanger(data) {
   if (!soundEnabled) return;
 
   const danger =
@@ -278,7 +279,7 @@ client.on("message", (topic, msg) => {
   raw.innerText = msg.toString();
   lastUpdate.innerText = new Date().toLocaleTimeString();
 
-  checkDangerLevels(data);
+  checkDanger(data);
 });
 </script>
 </body>
