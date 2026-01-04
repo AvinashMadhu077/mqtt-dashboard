@@ -2,276 +2,179 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pro AQI Dashboard</title>
+<title>Aesthetic AQI Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
 
 <style>
   :root {
-    --bg-color: #0f172a;
+    --bg-color: #0b1220;
     --card-bg: #1e293b;
-    --accent-orange: #f97316;
     --text-main: #f8fafc;
-    --text-dim: #94a3b8;
   }
 
   body {
     margin: 0;
     font-family: 'Inter', sans-serif;
     background: var(--bg-color);
-    background: radial-gradient(circle at top right, #1e293b, #0f172a);
     color: var(--text-main);
-    min-height: 100vh;
     padding: 20px;
   }
 
-  .container {
-    max-width: 480px;
-    margin: auto;
-  }
+  .container { max-width: 450px; margin: auto; }
 
-  h1 {
-    font-size: 1.5rem;
-    font-weight: 800;
-    text-align: center;
-    margin-bottom: 24px;
-    letter-spacing: -0.025em;
-  }
-
-  /* --- THE REQUESTED PARTICULATE DESIGN --- */
+  /* --- PM2.5 CARD (Your Image Style) --- */
   .pm-card {
-    background: #ffffff; /* Contrast white like the image */
+    background: white;
     color: #1e293b;
-    padding: 30px;
-    border-radius: 32px;
-    margin-bottom: 20px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
-    position: relative;
+    padding: 25px;
+    border-radius: 28px;
+    margin-bottom: 15px;
     overflow: hidden;
   }
 
-  .pm-header {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-
-  .pm-value-group {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin: 20px 0;
-  }
-
-  .pm-percent {
-    font-size: 3.5rem;
-    font-weight: 800;
-    line-height: 1;
-  }
-
-  .pm-label {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #475569;
-  }
-
-  #particleCanvas {
-    width: 100%;
-    height: 140px;
-    border-radius: 12px;
-    margin-top: 10px;
-  }
-
-  /* --- GRID FOR OTHER SENSORS --- */
-  .sensor-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-
-  .small-card {
-    background: var(--card-bg);
-    padding: 16px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+  /* --- CO2 CLOUD BOX --- */
+  .co2-card {
+    background: #2d1b4e;
+    height: 180px;
+    border-radius: 24px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 15px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    padding: 20px;
   }
 
-  .small-card .label {
-    font-size: 0.75rem;
-    color: var(--text-dim);
-    font-weight: 600;
+  .blob {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(45deg, #a855f7, #6366f1);
+    border-radius: 50%;
+    filter: blur(20px);
+    transition: all 1s ease;
+    z-index: 1;
+    opacity: 0.6;
   }
 
-  .small-card .val {
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-top: 8px;
+  /* --- HUMIDITY WAVE BOX --- */
+  .hum-card {
+    background: #1e293b;
+    height: 180px;
+    border-radius: 24px;
+    position: relative;
+    overflow: hidden;
+    padding: 20px;
   }
 
-  /* --- ALERT BUTTON --- */
-  .btn-container { margin-bottom: 20px; }
-  #alertToggle {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
-    width: 100%;
-    padding: 16px;
-    border-radius: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
+  .wave-container {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 0%; /* Dynamic height */
+    background: #0ea5e9;
+    transition: height 1s ease;
   }
 
-  #alertToggle.active {
-    background: #22c55e;
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+  .wave-svg {
+    position: absolute;
+    top: -20px;
+    width: 200%;
+    height: 25px;
+    fill: #0ea5e9;
+    animation: waveMove 4s linear infinite;
   }
 
-  /* Animations */
-  @keyframes pulse {
-    0% { opacity: 0.8; }
-    50% { opacity: 0.4; }
-    100% { opacity: 0.8; }
+  @keyframes waveMove {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
   }
+
+  /* Labels */
+  .card-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; z-index: 10; position: relative; opacity: 0.8; }
+  .card-val { font-size: 2rem; font-weight: 800; z-index: 10; position: relative; }
 </style>
 </head>
-
 <body>
+
 <div class="container">
-
-  <h1>Environment Live</h1>
-
-  <div class="btn-container">
-    <button id="alertToggle">🔕 Alerts Muted</button>
-  </div>
-
+  
   <div class="pm-card">
-    <div class="pm-header">Particulates</div>
-    <div class="pm-value-group">
-        <div class="pm-percent"><span id="pmPercent">0</span>%</div>
-        <div class="pm-label">PM2.5 — <span id="pm25">0</span> µg/m³</div>
-    </div>
-    <canvas id="particleCanvas"></canvas>
+    <div class="card-label" style="color:#64748b">Particulates</div>
+    <div class="card-val"><span id="pmPercent">0</span>%</div>
+    <div style="font-size:0.9rem; color:#475569">PM2.5 — <span id="pm25">0</span> µg/m³</div>
+    <canvas id="particleCanvas" style="width:100%; height:100px; margin-top:10px"></canvas>
   </div>
 
-  <div class="sensor-grid">
-    <div class="small-card">
-        <div class="label">CO₂ Level</div>
-        <div class="val"><span id="co2">--</span> <small style="font-size:10px">ppm</small></div>
-    </div>
-    <div class="small-card">
-        <div class="label">Carbon Monoxide</div>
-        <div class="val"><span id="co">--</span> <small style="font-size:10px">ppm</small></div>
-    </div>
-    <div class="small-card">
-        <div class="label">Temperature</div>
-        <div class="val"><span id="temp">--</span>°C</div>
-    </div>
-    <div class="small-card">
-        <div class="label">Humidity</div>
-        <div class="val"><span id="hum">--</span>%</div>
+  <div class="co2-card">
+    <div class="card-label">CO₂ Concentration</div>
+    <div class="card-val"><span id="co2">--</span> <small style="font-size:12px">ppm</small></div>
+    <div id="co2Blob" class="blob" style="width: 50px; height: 50px;"></div>
+  </div>
+
+  <div class="hum-card">
+    <div class="card-label">Humidity</div>
+    <div class="card-val"><span id="hum">--</span>%</div>
+    <div class="wave-container" id="humLevel">
+        <svg class="wave-svg" viewBox="0 0 120 28"><path d="M0 15Q30 5 60 15t60 0v13H0z"/></svg>
     </div>
   </div>
 
 </div>
 
-<audio id="alertSound" src="alert.mp3" preload="auto"></audio>
-
 <script>
-/* ===== PARTICLE ENGINE ===== */
+/* --- PM2.5 PARTICLES --- */
 const canvas = document.getElementById('particleCanvas');
 const ctx = canvas.getContext('2d');
 let particles = [];
-
-function initCanvas() {
-    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-}
-window.addEventListener('resize', initCanvas);
-initCanvas();
-
-function updateParticles(pmValue) {
-    const count = Math.min(pmValue * 5, 500); 
+function drawPM(val) {
+    canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
     particles = [];
-    for (let i = 0; i < count; i++) {
-        particles.push({
-            x: Math.random() * canvas.offsetWidth,
-            y: Math.random() * canvas.offsetHeight,
-            size: Math.random() * 3.5 + 0.5,
-            opacity: Math.random() * 0.6 + 0.1,
-            speed: Math.random() * 0.2 // subtle drift
-        });
+    for(let i=0; i<val*3; i++) {
+        particles.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, s:Math.random()*3+1});
     }
 }
-
-function animate() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function animPM() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = "#f39c12";
     particles.forEach(p => {
-        p.y += p.speed; // drift downward slowly
-        if (p.y > canvas.offsetHeight) p.y = 0;
-        
-        ctx.fillStyle = `rgba(243, 156, 18, ${p.opacity})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI*2); ctx.fill();
     });
-    requestAnimationFrame(animate);
+    requestAnimationFrame(animPM);
 }
-animate();
+animPM();
 
-/* ===== MQTT CONNECT ===== */
+/* --- MQTT Logic --- */
 const client = mqtt.connect("wss://cd29a7c955164a079ab779cab2f382d7.s1.eu.hivemq.cloud:8884/mqtt", {
-    username: "adam1234",
-    password: "Adam1234",
-    reconnectPeriod: 3000
+    username: "adam1234", password: "Adam1234"
 });
 
-client.on("connect", () => { client.subscribe("esp32/sensor"); });
+client.on("connect", () => client.subscribe("esp32/sensor"));
 
 client.on("message", (topic, msg) => {
-    try {
-        const data = JSON.parse(msg.toString());
-        const pmValue = Number(data.pm25) || 0;
+    const data = JSON.parse(msg.toString());
+    
+    // PM2.5 Update
+    const pm = data.pm25 || 0;
+    document.getElementById("pm25").innerText = pm;
+    document.getElementById("pmPercent").innerText = Math.round((pm/15)*100);
+    drawPM(pm);
 
-        // UI Updates
-        document.getElementById("pm25").innerText = pmValue;
-        document.getElementById("pmPercent").innerText = Math.round((pmValue / 15) * 100);
-        document.getElementById("co2").innerText = data.co2 || "--";
-        document.getElementById("co").innerText = data.co || "--";
-        document.getElementById("temp").innerText = data.temp || "--";
-        document.getElementById("hum").innerText = data.hum || "--";
+    // CO2 Blob Update (Cloud grows and blurs)
+    const co2 = data.co2 || 400;
+    document.getElementById("co2").innerText = co2;
+    const blobSize = Math.min(co2 / 4, 300);
+    const blob = document.getElementById("co2Blob");
+    blob.style.width = blobSize + 'px';
+    blob.style.height = blobSize + 'px';
+    blob.style.filter = `blur(${co2 / 50}px)`;
 
-        updateParticles(pmValue);
-        checkDanger(data);
-    } catch (e) { console.error("Data Parse Error", e); }
+    // Humidity Wave Update (Level rises)
+    const hum = data.hum || 0;
+    document.getElementById("hum").innerText = hum;
+    document.getElementById("humLevel").style.height = hum + '%';
 });
-
-/* ===== ALERTS ===== */
-let alertsEnabled = false;
-const toggleBtn = document.getElementById("alertToggle");
-const alertSound = document.getElementById("alertSound");
-
-toggleBtn.addEventListener("click", () => {
-    alertsEnabled = !alertsEnabled;
-    toggleBtn.classList.toggle('active', alertsEnabled);
-    toggleBtn.innerText = alertsEnabled ? "🔔 Monitoring Active" : "🔕 Alerts Muted";
-});
-
-function checkDanger(data) {
-    if (!alertsEnabled) return;
-    if (data.pm25 > 40 || data.co > 30) {
-        alertSound.play().catch(()=>{});
-    }
-}
 </script>
 </body>
 </html>
