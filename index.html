@@ -226,8 +226,8 @@ client.on("message", (topic, msg) => {
   document.getElementById("pm25").innerText = data.pm25;
   document.getElementById("co2").innerText = data.co2;
   document.getElementById("co").innerText = data.co;
-  document.getElementById("temp").innerText = data.temperature;
-  document.getElementById("hum").innerText = data.humidity;
+  document.getElementById("temp").innerText = data.temp;
+  document.getElementById("hum").innerText = data.hum;
   document.getElementById("aqi").innerText = data.aqi;
 
   document.getElementById("raw").innerText = msg.toString();
@@ -237,3 +237,4 @@ client.on("message", (topic, msg) => {
 </script>
 </body>
 </html>
+
