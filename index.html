@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Aesthetic AQI Dashboard</title>
+<title>Advanced AQI Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -20,80 +20,94 @@
     background: var(--bg-color);
     color: var(--text-main);
     padding: 20px;
+    display: flex;
+    justify-content: center;
   }
 
-  .container { max-width: 450px; margin: auto; }
+  .container { width: 100%; max-width: 400px; }
 
-  /* --- PM2.5 CARD (Your Image Style) --- */
+  /* --- PM2.5 CARD --- */
   .pm-card {
-    background: white;
+    background: #ffffff;
     color: #1e293b;
     padding: 25px;
-    border-radius: 28px;
-    margin-bottom: 15px;
-    overflow: hidden;
+    border-radius: 32px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
   }
 
-  /* --- CO2 CLOUD BOX --- */
+  /* --- REALISTIC CO2 CLOUD (Gooey Gas Effect) --- */
   .co2-card {
-    background: #2d1b4e;
-    height: 180px;
-    border-radius: 24px;
+    background: linear-gradient(145deg, #2d1b4e, #1a102e);
+    height: 220px;
+    border-radius: 32px;
     position: relative;
     overflow: hidden;
-    margin-bottom: 15px;
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
+    margin-bottom: 20px;
+    padding: 25px;
+    filter: contrast(120%); /* Enhances the gooey effect */
   }
 
-  .blob {
+  .gas-container {
     position: absolute;
-    top: 50%; left: 50%;
+    top: 55%; left: 50%;
     transform: translate(-50%, -50%);
-    background: linear-gradient(45deg, #a855f7, #6366f1);
-    border-radius: 50%;
-    filter: blur(20px);
-    transition: all 1s ease;
-    z-index: 1;
-    opacity: 0.6;
+    width: 200px; height: 200px;
+    filter: url('#goo'); /* Applying the SVG filter */
   }
 
-  /* --- HUMIDITY WAVE BOX --- */
+  .gas-part {
+    position: absolute;
+    background: radial-gradient(circle, #a855f7 0%, #6366f1 100%);
+    border-radius: 50%;
+    opacity: 0.7;
+    animation: drift 8s infinite alternate ease-in-out;
+  }
+
+  /* --- REALISTIC HUMIDITY (Layered Waves) --- */
   .hum-card {
-    background: #1e293b;
-    height: 180px;
-    border-radius: 24px;
+    background: #111827;
+    height: 220px;
+    border-radius: 32px;
     position: relative;
     overflow: hidden;
-    padding: 20px;
+    padding: 25px;
   }
 
-  .wave-container {
+  .water {
     position: absolute;
     bottom: 0; left: 0;
-    width: 100%; height: 0%; /* Dynamic height */
-    background: #0ea5e9;
-    transition: height 1s ease;
+    width: 100%; height: 50%;
+    background: linear-gradient(to top, #0ea5e9, #38bdf8);
+    transition: height 1.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .wave-svg {
+  .wave {
     position: absolute;
-    top: -20px;
+    top: -45px;
+    left: 0;
     width: 200%;
-    height: 25px;
-    fill: #0ea5e9;
-    animation: waveMove 4s linear infinite;
+    height: 50px;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 88.7"><path d="M800 56.9c-155.5 0-204.9-50-405.5-49.9-200 0-250 49.9-394.5 49.9V0h800v56.9z" fill="%230ea5e9" fill-opacity="0.4"/></svg>');
+    background-size: 50% 100%;
+    animation: waveMove 6s linear infinite;
   }
+
+  .wave.middle { top: -35px; animation: waveMove 10s linear infinite reverse; opacity: 0.6; }
+  .wave.front { top: -25px; animation: waveMove 4s linear infinite; opacity: 0.9; }
 
   @keyframes waveMove {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
   }
 
-  /* Labels */
-  .card-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; z-index: 10; position: relative; opacity: 0.8; }
-  .card-val { font-size: 2rem; font-weight: 800; z-index: 10; position: relative; }
+  @keyframes drift {
+    from { transform: translate(0, 0) scale(1); }
+    to { transform: translate(20px, 15px) scale(1.1); }
+  }
+
+  .card-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; z-index: 10; position: relative; }
+  .card-val { font-size: 3rem; font-weight: 800; z-index: 10; position: relative; margin: 5px 0; }
 </style>
 </head>
 <body>
@@ -102,26 +116,42 @@
   
   <div class="pm-card">
     <div class="card-label" style="color:#64748b">Particulates</div>
-    <div class="card-val"><span id="pmPercent">0</span>%</div>
-    <div style="font-size:0.9rem; color:#475569">PM2.5 — <span id="pm25">0</span> µg/m³</div>
-    <canvas id="particleCanvas" style="width:100%; height:100px; margin-top:10px"></canvas>
+    <div class="card-val" id="pmPercent">0%</div>
+    <div style="font-weight:600; color:#475569">PM2.5 — <span id="pm25">0</span> µg/m³</div>
+    <canvas id="particleCanvas" style="width:100%; height:100px; margin-top:15px"></canvas>
   </div>
 
   <div class="co2-card">
     <div class="card-label">CO₂ Concentration</div>
-    <div class="card-val"><span id="co2">--</span> <small style="font-size:12px">ppm</small></div>
-    <div id="co2Blob" class="blob" style="width: 50px; height: 50px;"></div>
+    <div class="card-val"><span id="co2Val">0</span> <small style="font-size:14px">ppm</small></div>
+    <div class="gas-container" id="gasContainer">
+        <div class="gas-part" style="width:100px; height:100px; top:20px; left:20px;"></div>
+        <div class="gas-part" style="width:80px; height:80px; top:50px; left:60px; animation-delay: -2s;"></div>
+        <div class="gas-part" style="width:110px; height:110px; top:10px; left:50px; animation-delay: -4s;"></div>
+    </div>
   </div>
 
   <div class="hum-card">
     <div class="card-label">Humidity</div>
-    <div class="card-val"><span id="hum">--</span>%</div>
-    <div class="wave-container" id="humLevel">
-        <svg class="wave-svg" viewBox="0 0 120 28"><path d="M0 15Q30 5 60 15t60 0v13H0z"/></svg>
+    <div class="card-val"><span id="humVal">0</span>%</div>
+    <div class="water" id="waterLevel">
+        <div class="wave"></div>
+        <div class="wave middle"></div>
+        <div class="wave front"></div>
     </div>
   </div>
 
 </div>
+
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" style="display:none">
+  <defs>
+    <filter id="goo">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+      <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
+      <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+    </filter>
+  </defs>
+</svg>
 
 <script>
 /* --- PM2.5 PARTICLES --- */
@@ -131,7 +161,7 @@ let particles = [];
 function drawPM(val) {
     canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
     particles = [];
-    for(let i=0; i<val*3; i++) {
+    for(let i=0; i<val*4; i++) {
         particles.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, s:Math.random()*3+1});
     }
 }
@@ -158,22 +188,19 @@ client.on("message", (topic, msg) => {
     // PM2.5 Update
     const pm = data.pm25 || 0;
     document.getElementById("pm25").innerText = pm;
-    document.getElementById("pmPercent").innerText = Math.round((pm/15)*100);
+    document.getElementById("pmPercent").innerText = Math.round((pm/15)*100) + "%";
     drawPM(pm);
 
-    // CO2 Blob Update (Cloud grows and blurs)
+    // Realistic CO2 Update
     const co2 = data.co2 || 400;
-    document.getElementById("co2").innerText = co2;
-    const blobSize = Math.min(co2 / 4, 300);
-    const blob = document.getElementById("co2Blob");
-    blob.style.width = blobSize + 'px';
-    blob.style.height = blobSize + 'px';
-    blob.style.filter = `blur(${co2 / 50}px)`;
+    document.getElementById("co2Val").innerText = co2;
+    const gasScale = Math.min(co2 / 800, 1.5); // Scales the gas cloud
+    document.getElementById("gasContainer").style.transform = `translate(-50%, -50%) scale(${gasScale})`;
 
-    // Humidity Wave Update (Level rises)
+    // Realistic Humidity Update
     const hum = data.hum || 0;
-    document.getElementById("hum").innerText = hum;
-    document.getElementById("humLevel").style.height = hum + '%';
+    document.getElementById("humVal").innerText = hum;
+    document.getElementById("waterLevel").style.height = hum + '%';
 });
 </script>
 </body>
