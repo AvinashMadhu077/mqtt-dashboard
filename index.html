@@ -2,124 +2,183 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Air Quality Monitoring Dashboard</title>
+<title>Pro AQI Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
 
 <style>
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-  background: #0b1220;
-  color: #e5e7eb;
-}
+  :root {
+    --bg-color: #0f172a;
+    --card-bg: #1e293b;
+    --accent-orange: #f97316;
+    --text-main: #f8fafc;
+    --text-dim: #94a3b8;
+  }
 
-.container {
-  max-width: 420px;
-  margin: auto;
-  padding: 16px;
-}
+  body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-color);
+    background: radial-gradient(circle at top right, #1e293b, #0f172a);
+    color: var(--text-main);
+    min-height: 100vh;
+    padding: 20px;
+  }
 
-.card {
-  background: #1b2435;
-  border-radius: 16px;
-  padding: 18px;
-  margin-bottom: 14px;
-}
+  .container {
+    max-width: 480px;
+    margin: auto;
+  }
 
-.sensor {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 24px;
+    letter-spacing: -0.025em;
+  }
 
-.value {
-  font-size: 28px;
-  font-weight: bold;
-}
+  /* --- THE REQUESTED PARTICULATE DESIGN --- */
+  .pm-card {
+    background: #ffffff; /* Contrast white like the image */
+    color: #1e293b;
+    padding: 30px;
+    border-radius: 32px;
+    margin-bottom: 20px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
 
-button {
-  width: 100%;
-  padding: 14px;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  color: white;
-}
+  .pm-header {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
 
-/* ===== PM2.5 VISUAL ===== */
-.pm-box {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+  .pm-value-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin: 20px 0;
+  }
 
-.pm-info {
-  z-index: 2;
-}
+  .pm-percent {
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1;
+  }
 
-.pm-dots {
-  position: relative;
-  width: 120px;
-  height: 80px;
-  overflow: hidden;
-}
+  .pm-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #475569;
+  }
 
-.dot {
-  position: absolute;
-  background: #fbbf24;
-  border-radius: 50%;
-  opacity: 0.8;
-}
+  #particleCanvas {
+    width: 100%;
+    height: 140px;
+    border-radius: 12px;
+    margin-top: 10px;
+  }
+
+  /* --- GRID FOR OTHER SENSORS --- */
+  .sensor-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .small-card {
+    background: var(--card-bg);
+    padding: 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .small-card .label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+
+  .small-card .val {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-top: 8px;
+  }
+
+  /* --- ALERT BUTTON --- */
+  .btn-container { margin-bottom: 20px; }
+  #alertToggle {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    width: 100%;
+    padding: 16px;
+    border-radius: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  #alertToggle.active {
+    background: #22c55e;
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+  }
+
+  /* Animations */
+  @keyframes pulse {
+    0% { opacity: 0.8; }
+    50% { opacity: 0.4; }
+    100% { opacity: 0.8; }
+  }
 </style>
 </head>
 
 <body>
 <div class="container">
 
-  <div class="card">
-    <h2 style="text-align:center;margin:0">Air Quality Dashboard</h2>
+  <h1>Environment Live</h1>
+
+  <div class="btn-container">
+    <button id="alertToggle">🔕 Alerts Muted</button>
   </div>
 
-  <div class="card">
-    <button id="alertToggle" style="background:#6b7280">🔕 Alerts OFF</button>
-  </div>
-
-  <!-- PM2.5 CUSTOM DESIGN -->
-  <div class="card pm-box">
-    <div class="pm-info">
-      <div style="opacity:0.8">PM2.5</div>
-      <div class="value"><span id="pm25">--</span> µg/m³</div>
+  <div class="pm-card">
+    <div class="pm-header">Particulates</div>
+    <div class="pm-value-group">
+        <div class="pm-percent"><span id="pmPercent">0</span>%</div>
+        <div class="pm-label">PM2.5 — <span id="pm25">0</span> µg/m³</div>
     </div>
-    <div class="pm-dots" id="pmDots"></div>
+    <canvas id="particleCanvas"></canvas>
   </div>
 
-  <div class="card sensor">
-    <div>CO₂</div>
-    <div class="value"><span id="co2">--</span></div>
-  </div>
-
-  <div class="card sensor">
-    <div>CO</div>
-    <div class="value"><span id="co">--</span></div>
-  </div>
-
-  <div class="card sensor">
-    <div>Temperature</div>
-    <div class="value"><span id="temp">--</span></div>
-  </div>
-
-  <div class="card sensor">
-    <div>Humidity</div>
-    <div class="value"><span id="hum">--</span></div>
-  </div>
-
-  <div class="card sensor">
-    <div>Overall AQI</div>
-    <div class="value"><span id="aqi">--</span></div>
+  <div class="sensor-grid">
+    <div class="small-card">
+        <div class="label">CO₂ Level</div>
+        <div class="val"><span id="co2">--</span> <small style="font-size:10px">ppm</small></div>
+    </div>
+    <div class="small-card">
+        <div class="label">Carbon Monoxide</div>
+        <div class="val"><span id="co">--</span> <small style="font-size:10px">ppm</small></div>
+    </div>
+    <div class="small-card">
+        <div class="label">Temperature</div>
+        <div class="val"><span id="temp">--</span>°C</div>
+    </div>
+    <div class="small-card">
+        <div class="label">Humidity</div>
+        <div class="val"><span id="hum">--</span>%</div>
+    </div>
   </div>
 
 </div>
@@ -127,105 +186,92 @@ button {
 <audio id="alertSound" src="alert.mp3" preload="auto"></audio>
 
 <script>
-/* ===== MQTT ===== */
-const client = mqtt.connect(
-  "wss://cd29a7c955164a079ab779cab2f382d7.s1.eu.hivemq.cloud:8884/mqtt",
-  {
-    username: "adam1234",
-    password: "Adam1234"
-  }
-);
+/* ===== PARTICLE ENGINE ===== */
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
 
-client.on("connect", () => {
-  client.subscribe("esp32/sensor");
-});
+function initCanvas() {
+    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+}
+window.addEventListener('resize', initCanvas);
+initCanvas();
 
-/* ===== PM2.5 DOT GENERATOR ===== */
-function renderPMDots(pm) {
-  const box = document.getElementById("pmDots");
-  box.innerHTML = "";
-
-  const count = Math.min(120, Math.floor(pm * 2)); // density control
-
-  for (let i = 0; i < count; i++) {
-    const d = document.createElement("div");
-    const size = Math.random() * 6 + 2;
-
-    d.className = "dot";
-    d.style.width = size + "px";
-    d.style.height = size + "px";
-    d.style.left = Math.random() * 120 + "px";
-    d.style.top = Math.random() * 80 + "px";
-    d.style.opacity = Math.random();
-
-    box.appendChild(d);
-  }
+function updateParticles(pmValue) {
+    const count = Math.min(pmValue * 5, 500); 
+    particles = [];
+    for (let i = 0; i < count; i++) {
+        particles.push({
+            x: Math.random() * canvas.offsetWidth,
+            y: Math.random() * canvas.offsetHeight,
+            size: Math.random() * 3.5 + 0.5,
+            opacity: Math.random() * 0.6 + 0.1,
+            speed: Math.random() * 0.2 // subtle drift
+        });
+    }
 }
 
-/* ===== ALERT TOGGLE ===== */
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+        p.y += p.speed; // drift downward slowly
+        if (p.y > canvas.offsetHeight) p.y = 0;
+        
+        ctx.fillStyle = `rgba(243, 156, 18, ${p.opacity})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    requestAnimationFrame(animate);
+}
+animate();
+
+/* ===== MQTT CONNECT ===== */
+const client = mqtt.connect("wss://cd29a7c955164a079ab779cab2f382d7.s1.eu.hivemq.cloud:8884/mqtt", {
+    username: "adam1234",
+    password: "Adam1234",
+    reconnectPeriod: 3000
+});
+
+client.on("connect", () => { client.subscribe("esp32/sensor"); });
+
+client.on("message", (topic, msg) => {
+    try {
+        const data = JSON.parse(msg.toString());
+        const pmValue = Number(data.pm25) || 0;
+
+        // UI Updates
+        document.getElementById("pm25").innerText = pmValue;
+        document.getElementById("pmPercent").innerText = Math.round((pmValue / 15) * 100);
+        document.getElementById("co2").innerText = data.co2 || "--";
+        document.getElementById("co").innerText = data.co || "--";
+        document.getElementById("temp").innerText = data.temp || "--";
+        document.getElementById("hum").innerText = data.hum || "--";
+
+        updateParticles(pmValue);
+        checkDanger(data);
+    } catch (e) { console.error("Data Parse Error", e); }
+});
+
+/* ===== ALERTS ===== */
 let alertsEnabled = false;
-let alertPlaying = false;
-
-const alertSound = document.getElementById("alertSound");
 const toggleBtn = document.getElementById("alertToggle");
+const alertSound = document.getElementById("alertSound");
 
-toggleBtn.onclick = () => {
-  alertsEnabled = !alertsEnabled;
-  toggleBtn.textContent = alertsEnabled ? "🔔 Alerts ON" : "🔕 Alerts OFF";
-  toggleBtn.style.background = alertsEnabled ? "#22c55e" : "#6b7280";
-
-  if (alertsEnabled) {
-    alertSound.play().then(()=> {
-      alertSound.pause();
-      alertSound.currentTime = 0;
-    }).catch(()=>{});
-  } else {
-    alertSound.pause();
-    alertPlaying = false;
-  }
-};
+toggleBtn.addEventListener("click", () => {
+    alertsEnabled = !alertsEnabled;
+    toggleBtn.classList.toggle('active', alertsEnabled);
+    toggleBtn.innerText = alertsEnabled ? "🔔 Monitoring Active" : "🔕 Alerts Muted";
+});
 
 function checkDanger(data) {
-  if (!alertsEnabled) return;
-
-  const danger =
-    data.pm25 > 40 ||
-    data.co > 40 ||
-    data.temp > 40 ||
-    data.co2 > 80 ||
-    data.hum > 80;
-
-  if (danger && !alertPlaying) {
-    alertPlaying = true;
-    alertSound.loop = true;
-    alertSound.play().catch(()=>{});
-  }
-
-  if (!danger && alertPlaying) {
-    alertSound.pause();
-    alertPlaying = false;
-  }
+    if (!alertsEnabled) return;
+    if (data.pm25 > 40 || data.co > 30) {
+        alertSound.play().catch(()=>{});
+    }
 }
-
-/* ===== MQTT DATA ===== */
-client.on("message", (topic, msg) => {
-  const data = JSON.parse(msg.toString());
-
-  pm25.textContent = data.pm25 || 0;
-  co2.textContent  = data.co2 || 0;
-  co.textContent   = data.co || 0;
-  temp.textContent = data.temp || 0;
-  hum.textContent  = data.hum || 0;
-
-  aqi.textContent = Math.max(
-    data.pm25 || 0,
-    (data.co2 || 0) / 10
-  ).toFixed(0);
-
-  renderPMDots(data.pm25 || 0);
-  checkDanger(data);
-});
 </script>
-
 </body>
 </html>
