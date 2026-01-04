@@ -8,223 +8,376 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap" rel="stylesheet">
 
 <style>
-  :root { --bg: #05080f; --text: #f8fafc; }
-  body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; }
-  .container { width: 100%; max-width: 420px; }
+:root { --bg: #05080f; --text: #f8fafc; }
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+.container { width: 100%; max-width: 420px; }
 
-  /* UNIVERSAL CARD STYLING */
-  .card { border-radius: 32px; margin-bottom: 20px; padding: 25px; position: relative; overflow: hidden; height: 220px; }
-  .label-row { display: flex; justify-content: space-between; align-items: center; z-index: 10; position: relative; }
-  .label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.8; }
-  .status-tag { font-size: 0.7rem; font-weight: 800; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; }
-  .val { font-size: 3.5rem; font-weight: 900; z-index: 10; position: relative; margin: 5px 0; line-height: 1; }
+.card {
+  border-radius: 32px;
+  margin-bottom: 20px;
+  padding: 25px;
+  position: relative;
+  overflow: hidden;
+  height: 220px;
+}
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+  position: relative;
+}
+.label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  opacity: 0.8;
+}
+.status-tag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+.val {
+  font-size: 3.5rem;
+  font-weight: 900;
+  z-index: 10;
+  position: relative;
+  margin: 5px 0;
+  line-height: 1;
+}
 
-  /* STATUS COLORS */
-  .st-good { background: #dcfce7; color: #166534; }
-  .st-avg { background: #fef3c7; color: #92400e; }
-  .st-bad { background: #fee2e2; color: #991b1b; }
-  .st-dark-good { background: #064e3b; color: #34d399; }
-  .st-dark-avg { background: #78350f; color: #fbbf24; }
-  .st-dark-bad { background: #7f1d1d; color: #f87171; }
+/* STATUS COLORS */
+.st-good { background: #dcfce7; color: #166534; }
+.st-avg { background: #fef3c7; color: #92400e; }
+.st-bad { background: #fee2e2; color: #991b1b; }
+.st-dark-good { background: #064e3b; color: #34d399; }
+.st-dark-avg { background: #78350f; color: #fbbf24; }
+.st-dark-bad { background: #7f1d1d; color: #f87171; }
 
-  /* 1. PARTICULATES (White Glass) */
-  .pm-card { background: rgba(255, 255, 255, 0.95); color: #1e293b; box-shadow: 0 15px 30px rgba(0,0,0,0.4); }
-  
-  /* 2. CO2 (Swirling Gas) - ADDED BACK */
-  .co2-card { background: #1a102e; }
-  .gas-outer { position: absolute; top: 60%; left: 50%; width: 250px; height: 250px; filter: url('#goo'); transform: translate(-50%, -50%); transition: transform 1.5s ease; }
-  .gas-blob { position: absolute; background: radial-gradient(circle, #a855f7, #6366f1); border-radius: 50%; opacity: 0.7; width: 120px; height: 120px; }
+/* CARDS */
+.pm-card { background: rgba(255,255,255,0.95); color: #1e293b; }
+.co2-card { background: #1a102e; }
+.hum-card { background: #070b14; }
+.temp-card { background: #1e0a0a; }
+.co-card { background: #0f172a; border: 1px solid #334155; }
 
-  /* 3. HUMIDITY (Liquid Bubbles) */
-  .hum-card { background: #070b14; }
-  .water-vol { 
-    position: absolute; bottom: 0; left: 0; width: 100%; height: 50%; 
-    background: linear-gradient(180deg, #0ea5e9aa 0%, #0369a1 100%); 
-    transition: height 2s cubic-bezier(0.4, 0, 0.2, 1); 
-  }
-  .bubble { position: absolute; background: rgba(255,255,255,0.3); border-radius: 50%; bottom: -20px; animation: rise 4s infinite ease-in; }
+/* PM */
+canvas { width:100%; height:120px; }
 
-  /* 4. TEMPERATURE (Heat Aura) */
-  .temp-card { background: #1e0a0a; }
-  .heat-aura {
-    position: absolute; top: 50%; left: 50%; width: 300px; height: 300px;
-    background: radial-gradient(circle, #ef444466 0%, transparent 70%);
-    transform: translate(-50%, -50%); animation: breathe 3s infinite alternate ease-in-out;
-  }
+/* CO2 GAS */
+.gas-outer {
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  width: 250px;
+  height: 250px;
+  filter: url('#goo');
+  transform: translate(-50%, -50%);
+}
+.gas-blob {
+  position: absolute;
+  background: radial-gradient(circle, #a855f7, #6366f1);
+  border-radius: 50%;
+  opacity: 0.7;
+  width: 120px;
+  height: 120px;
+}
 
-  /* 5. CARBON MONOXIDE (High-Tech Pulse) */
-  .co-card { background: #0f172a; border: 1px solid #334155; }
-  .pulse-ring {
-    position: absolute; top: 50%; left: 50%; width: 10px; height: 10px;
-    border: 2px solid #f97316; border-radius: 50%; transform: translate(-50%, -50%);
-    animation: sonar 2s infinite; opacity: 0;
-  }
+/* HUMIDITY */
+.water-vol {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(180deg, #0ea5e9aa, #0369a1);
+  transition: height 2s ease;
+}
+.bubble {
+  position: absolute;
+  background: rgba(255,255,255,0.3);
+  border-radius: 50%;
+  bottom: -20px;
+  animation: rise 4s infinite ease-in;
+}
 
-  /* ANIMATIONS */
-  @keyframes rise { 0% { bottom: -20px; transform: translateX(0) scale(0.5); opacity: 0; } 50% { opacity: 0.5; } 100% { bottom: 110%; transform: translateX(20px) scale(1.2); opacity: 0; } }
-  @keyframes breathe { from { transform: translate(-50%, -50%) scale(0.8); opacity: 0.4; } to { transform: translate(-50%, -50%) scale(1.2); opacity: 0.8; } }
-  @keyframes sonar { 0% { width: 0; height: 0; opacity: 1; } 100% { width: 400px; height: 400px; opacity: 0; } }
+/* TEMP */
+.heat-aura {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, #ef444466 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  animation: breathe 3s infinite alternate;
+}
+
+/* CO */
+.pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #f97316;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: sonar 2s infinite;
+  opacity: 0;
+}
+
+/* ALERT TOGGLE */
+.alert-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #020617;
+  padding: 10px 16px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 9999;
+}
+.switch { position: relative; width: 44px; height: 22px; }
+.switch input { display:none; }
+.slider {
+  position: absolute;
+  inset: 0;
+  background: #475569;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: .3s;
+}
+.slider:before {
+  content:"";
+  position:absolute;
+  height:16px;
+  width:16px;
+  left:3px;
+  top:3px;
+  background:#fff;
+  border-radius:50%;
+  transition:.3s;
+}
+input:checked + .slider { background:#22c55e; }
+input:checked + .slider:before { transform: translateX(22px); }
+
+/* NOTIFICATION */
+.notify {
+  position: fixed;
+  top: 20px;
+  right: -350px;
+  background: #dc2626;
+  color: white;
+  padding: 14px 18px;
+  border-radius: 14px;
+  font-weight: 800;
+  transition: right .5s ease;
+  z-index: 9999;
+}
+.notify.show { right: 20px; }
+
+/* ANIMATIONS */
+@keyframes rise {
+  0% { bottom:-20px; opacity:0; }
+  100% { bottom:110%; opacity:0; }
+}
+@keyframes breathe {
+  from { transform: translate(-50%,-50%) scale(.8); }
+  to { transform: translate(-50%,-50%) scale(1.2); }
+}
+@keyframes sonar {
+  0% { width:0;height:0;opacity:1; }
+  100% { width:400px;height:400px;opacity:0; }
+}
 </style>
 </head>
+
 <body>
 
+<div class="alert-toggle">
+  <strong style="font-size:.8rem">ALERT</strong>
+  <label class="switch">
+    <input type="checkbox" id="alertToggle">
+    <span class="slider"></span>
+  </label>
+</div>
+
+<div id="notify" class="notify"></div>
+
+<audio id="alertSound" loop>
+  <source src="alert.mp3" type="audio/mpeg">
+</audio>
+
 <div class="container">
-  <div class="card pm-card">
-    <div class="label-row">
-        <div class="label" style="color:#64748b">Particulates</div>
-        <div id="pmStatus" class="status-tag st-good">Good</div>
-    </div>
-    <div class="val" id="pmPerc">0%</div>
-    <div style="font-weight:600; color:#475569">PM2.5 — <span id="pmVal">0</span></div>
-    <canvas id="pmCanvas" style="width:100%; height:120px;"></canvas>
-  </div>
 
-  <div class="card co2-card">
-    <div class="label-row">
-        <div class="label">CO₂ Concentration</div>
-        <div id="co2Status" class="status-tag st-dark-good">Healthy</div>
-    </div>
-    <div class="val" id="co2Val">0</div>
-    <div class="gas-outer" id="gasContainer">
-        <div class="gas-blob" id="b1"></div>
-        <div class="gas-blob" id="b2" style="width:100px; height:100px;"></div>
-        <div class="gas-blob" id="b3" style="width:140px; height:140px;"></div>
-    </div>
+<!-- PM -->
+<div class="card pm-card">
+  <div class="label-row">
+    <div class="label" style="color:#64748b">Particulates</div>
+    <div id="pmStatus" class="status-tag st-good">Good</div>
   </div>
+  <div class="val" id="pmPerc">0%</div>
+  <div>PM2.5 — <span id="pmVal">0</span></div>
+  <canvas id="pmCanvas"></canvas>
+</div>
 
-  <div class="card hum-card">
-    <div class="label-row">
-        <div class="label">Humidity</div>
-        <div id="humStatus" class="status-tag st-dark-good">Ideal</div>
-    </div>
-    <div class="val" id="humVal">0%</div>
-    <div class="water-vol" id="water">
-      <div class="bubble" style="left:20%; width:10px; height:10px; animation-delay:0s"></div>
-      <div class="bubble" style="left:50%; width:15px; height:15px; animation-delay:1s"></div>
-      <div class="bubble" style="left:80%; width:8px; height:8px; animation-delay:2s"></div>
-    </div>
+<!-- CO2 -->
+<div class="card co2-card">
+  <div class="label-row">
+    <div class="label">CO₂</div>
+    <div id="co2Status" class="status-tag st-dark-good">Good</div>
   </div>
-
-  <div class="card temp-card">
-    <div class="label-row">
-        <div class="label">Temperature</div>
-        <div id="tempStatus" class="status-tag st-dark-good">Normal</div>
-    </div>
-    <div class="val" id="tempVal">0°C</div>
-    <div class="heat-aura" id="heatAura"></div>
-  </div>
-
-  <div class="card co-card">
-    <div class="label-row">
-        <div class="label">Carbon Monoxide</div>
-        <div id="coStatus" class="status-tag st-dark-good">Safe</div>
-    </div>
-    <div class="val" id="coVal">0 <small style="font-size:1rem">ppm</small></div>
-    <div class="pulse-ring" id="p1"></div>
-    <div class="pulse-ring" id="p2" style="animation-delay: 1s"></div>
+  <div class="val" id="co2Val">0</div>
+  <div class="gas-outer" id="gasContainer">
+    <div class="gas-blob" id="b1"></div>
+    <div class="gas-blob" id="b2"></div>
+    <div class="gas-blob" id="b3"></div>
   </div>
 </div>
 
-<svg style="display:none"><filter id="goo"><feGaussianBlur stdDeviation="12" /><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 19 -9" /></filter></svg>
+<!-- HUM -->
+<div class="card hum-card">
+  <div class="label-row">
+    <div class="label">Humidity</div>
+    <div id="humStatus" class="status-tag st-dark-good">Good</div>
+  </div>
+  <div class="val" id="humVal">0%</div>
+  <div class="water-vol" id="water"></div>
+</div>
+
+<!-- TEMP -->
+<div class="card temp-card">
+  <div class="label-row">
+    <div class="label">Temperature</div>
+    <div id="tempStatus" class="status-tag st-dark-good">Good</div>
+  </div>
+  <div class="val" id="tempVal">0°C</div>
+  <div class="heat-aura" id="heatAura"></div>
+</div>
+
+<!-- CO -->
+<div class="card co-card">
+  <div class="label-row">
+    <div class="label">Carbon Monoxide</div>
+    <div id="coStatus" class="status-tag st-dark-good">Safe</div>
+  </div>
+  <div class="val" id="coVal">0 ppm</div>
+  <div class="pulse-ring"></div>
+</div>
+
+</div>
+
+<svg style="display:none">
+<filter id="goo">
+<feGaussianBlur stdDeviation="12"/>
+<feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 19 -9"/>
+</filter>
+</svg>
 
 <script>
-/* PM2.5 Canvas Logic */
-const canvas = document.getElementById('pmCanvas');
-const ctx = canvas.getContext('2d');
+/* PM CANVAS */
+const canvas = document.getElementById("pmCanvas");
+const ctx = canvas.getContext("2d");
 let particles = [];
 let pmCount = 20;
 
-function createPM() {
-  canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
-  particles = Array.from({length: 300}, () => ({
-    x: Math.random()*canvas.width, y: Math.random()*canvas.height,
-    s: Math.random()*3+1, vx: (Math.random()-0.5)*0.8, vy: (Math.random()-0.5)*0.8
+function createPM(){
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  particles = Array.from({length:300},()=>({
+    x:Math.random()*canvas.width,
+    y:Math.random()*canvas.height,
+    s:Math.random()*3+1,
+    vx:(Math.random()-.5),
+    vy:(Math.random()-.5)
   }));
 }
-function animPM() {
+function animPM(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle = "#f39c12";
-  for(let i=0; i<pmCount; i++){
-    let p = particles[i]; p.x += p.vx; p.y += p.vy;
-    if(p.x<0) p.x=canvas.width; if(p.x>canvas.width) p.x=0;
-    if(p.y<0) p.y=canvas.height; if(p.y>canvas.height) p.y=0;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle="#f39c12";
+  for(let i=0;i<pmCount;i++){
+    let p=particles[i];
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0)p.x=canvas.width;
+    if(p.x>canvas.width)p.x=0;
+    if(p.y<0)p.y=canvas.height;
+    if(p.y>canvas.height)p.y=0;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.s,0,Math.PI*2);
+    ctx.fill();
   }
   requestAnimationFrame(animPM);
 }
+createPM(); animPM();
 
-/* CO2 Gas Swirl Animation */
-let blobs = [{id:'b1',x:0,y:0,tx:0,ty:0},{id:'b2',x:0,y:0,tx:0,ty:0},{id:'b3',x:0,y:0,tx:0,ty:0}];
-function animCO2() {
-    blobs.forEach(b => {
-        if(Math.abs(b.x-b.tx)<2) b.tx=(Math.random()-0.5)*130;
-        if(Math.abs(b.y-b.ty)<2) b.ty=(Math.random()-0.5)*130;
-        b.x += (b.tx-b.x)*0.02; b.y += (b.ty-b.y)*0.02;
-        const el = document.getElementById(b.id);
-        if(el) el.style.transform = `translate(${b.x}px, ${b.y}px)`;
-    });
-    requestAnimationFrame(animCO2);
+/* MQTT */
+const client = mqtt.connect(
+"wss://cd29a7c955164a079ab779cab2f382d7.s1.eu.hivemq.cloud:8884/mqtt",
+{ username:"adam1234", password:"Adam1234" }
+);
+client.on("connect",()=>client.subscribe("esp32/sensor"));
+
+const alertToggle = document.getElementById("alertToggle");
+const alertSound = document.getElementById("alertSound");
+const notify = document.getElementById("notify");
+let alertEnabled=false, alertPlaying=false;
+
+alertToggle.onchange=()=>{
+  alertEnabled=alertToggle.checked;
+  if(!alertEnabled){
+    alertSound.pause();
+    alertSound.currentTime=0;
+    alertPlaying=false;
+  }
+};
+
+function showNotify(msg){
+  notify.textContent=msg;
+  notify.classList.add("show");
+  setTimeout(()=>notify.classList.remove("show"),4000);
 }
 
-createPM(); animPM(); animCO2();
+function triggerAlert(msg){
+  if(!alertEnabled) return;
+  showNotify(msg);
+  if(!alertPlaying){
+    alertSound.play().catch(()=>{});
+    alertPlaying=true;
+  }
+}
+function clearAlert(){
+  alertSound.pause();
+  alertSound.currentTime=0;
+  alertPlaying=false;
+}
 
-/* MQTT Interface */
-const client = mqtt.connect("wss://cd29a7c955164a079ab779cab2f382d7.s1.eu.hivemq.cloud:8884/mqtt", {
-    username: "adam1234", password: "Adam1234"
-});
-client.on("connect", () => client.subscribe("esp32/sensor"));
+client.on("message",(t,m)=>{
+  const d=JSON.parse(m.toString());
+  let danger=false;
 
-client.on("message", (t, m) => {
-    const d = JSON.parse(m.toString());
-    
-    // PM2.5 Status
-    const pm = d.pm25;
-    const pmTag = document.getElementById("pmStatus");
-    document.getElementById("pmVal").innerText = pm;
-    document.getElementById("pmPerc").innerText = Math.round((pm/15)*100) + "%";
-    pmCount = Math.min(pm * 8, 300);
-    if(pm < 12) { pmTag.innerText = "Good"; pmTag.className = "status-tag st-good"; }
-    else if(pm < 35) { pmTag.innerText = "Average"; pmTag.className = "status-tag st-avg"; }
-    else { pmTag.innerText = "Bad"; pmTag.className = "status-tag st-bad"; }
+  if(d.pm25>20){ triggerAlert("PM2.5 Above 20"); danger=true; }
+  if(d.co2>80){ triggerAlert("CO₂ Above 80"); danger=true; }
+  if(d.hum>80){ triggerAlert("Humidity Above 80%"); danger=true; }
+  if(d.temp>40){ triggerAlert("Temperature Above 40°C"); danger=true; }
 
-    // CO2 Status & Scale
-    const co2 = d.co2 || 400;
-    const co2Tag = document.getElementById("co2Status");
-    document.getElementById("co2Val").innerText = co2;
-    const s = 0.8 + (Math.min(co2, 1500)/1500);
-    document.getElementById("gasContainer").style.transform = `translate(-50%, -50%) scale(${s})`;
-    if(co2 < 800) { co2Tag.innerText = "Good"; co2Tag.className = "status-tag st-dark-good"; }
-    else if(co2 < 1200) { co2Tag.innerText = "Average"; co2Tag.className = "status-tag st-dark-avg"; }
-    else { co2Tag.innerText = "Bad"; co2Tag.className = "status-tag st-dark-bad"; }
-
-    // Humidity Status
-    const hum = d.hum;
-    const humTag = document.getElementById("humStatus");
-    document.getElementById("humVal").innerText = Math.round(hum) + "%";
-    document.getElementById("water").style.height = hum + "%";
-    if(hum >= 30 && hum <= 60) { humTag.innerText = "Good"; humTag.className = "status-tag st-dark-good"; }
-    else { humTag.innerText = "Average"; humTag.className = "status-tag st-dark-avg"; }
-
-    // Temperature Status & Aura
-    const temp = d.temp;
-    const tempTag = document.getElementById("tempStatus");
-    document.getElementById("tempVal").innerText = temp + "°C";
-    const tempScale = 0.5 + (temp / 40);
-    document.getElementById("heatAura").style.transform = `translate(-50%, -50%) scale(${tempScale})`;
-    if(temp < 28) { tempTag.innerText = "Good"; tempTag.className = "status-tag st-dark-good"; }
-    else if(temp < 35) { tempTag.innerText = "Average"; tempTag.className = "status-tag st-dark-avg"; }
-    else { tempTag.innerText = "Bad"; tempTag.className = "status-tag st-dark-bad"; }
-
-    // Carbon Monoxide Status & Pulse
-    const co = d.co;
-    const coTag = document.getElementById("coStatus");
-    document.getElementById("coVal").innerText = co;
-    const pulseSpeed = co > 10 ? '0.8s' : '2s';
-    document.querySelectorAll('.pulse-ring').forEach(r => r.style.animationDuration = pulseSpeed);
-    if(co < 9) { coTag.innerText = "Good"; coTag.className = "status-tag st-dark-good"; }
-    else if(co < 20) { coTag.innerText = "Average"; coTag.className = "status-tag st-dark-avg"; }
-    else { coTag.innerText = "Bad"; coTag.className = "status-tag st-dark-bad"; }
+  if(!danger) clearAlert();
 });
 </script>
+
 </body>
 </html>
