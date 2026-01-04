@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pro AQI Dashboard Fixed</title>
+<title>Aesthetic Sensor Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;800&display=swap" rel="stylesheet">
@@ -15,43 +15,55 @@
   /* PM2.5 CARD */
   .pm-card { background: #fff; color: #1e293b; padding: 25px; border-radius: 32px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
   
-  /* CO2 CARD - IMPROVED GAS EFFECT */
+  /* CO2 CARD - SWIRLING GAS */
   .co2-card {
     background: linear-gradient(145deg, #2d1b4e, #1a102e);
     height: 240px; border-radius: 32px; position: relative; overflow: hidden; margin-bottom: 20px; padding: 25px;
   }
   .gas-outer {
-    position: absolute; 
-    top: 60%; left: 50%; 
-    transform: translate(-50%, -50%) scale(1); /* Base scale 1 */
-    width: 200px; height: 200px; 
-    filter: url('#goo');
-    transition: transform 1.5s ease-out;
+    position: absolute; top: 60%; left: 50%; width: 220px; height: 220px; 
+    filter: url('#goo'); transform: translate(-50%, -50%); transition: transform 1.5s ease;
   }
   .gas-blob {
-    position: absolute; 
-    background: radial-gradient(circle, #a855f7, #6366f1);
-    border-radius: 50%; 
-    opacity: 0.85;
-    width: 100px; height: 100px; /* Increased base size */
+    position: absolute; background: radial-gradient(circle, #a855f7, #6366f1);
+    border-radius: 50%; opacity: 0.8; width: 110px; height: 110px;
   }
 
-  /* HUMIDITY CARD - WAVES */
-  .hum-card { background: #111827; height: 220px; border-radius: 32px; position: relative; overflow: hidden; padding: 25px; }
-  .water { 
-    position: absolute; bottom: 0; left: 0; width: 100%; height: 20%; 
-    background: linear-gradient(to top, #0ea5e9, #38bdf8); transition: height 2s cubic-bezier(0.4, 0, 0.2, 1); 
+  /* HUMIDITY CARD - REALISTIC WATER */
+  .hum-card { background: #070b14; height: 240px; border-radius: 32px; position: relative; overflow: hidden; padding: 25px; }
+  
+  .water-volume {
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 72%;
+    background: linear-gradient(180deg, rgba(14, 165, 233, 0.8) 0%, rgba(3, 105, 161, 1) 100%);
+    box-shadow: inset 0 10px 20px rgba(255,255,255,0.1);
+    transition: height 2s cubic-bezier(0.4, 0, 0.2, 1);
   }
+
+  /* Layered Waves for depth */
+  .wave-wrap { position: absolute; top: -35px; left: 0; width: 100%; height: 40px; }
   .wave {
-    position: absolute; top: -35px; left: 0; width: 200%; height: 50px;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 88.7"><path d="M800 56.9c-155.5 0-204.9-50-405.5-49.9-200 0-250 49.9-394.5 49.9V0h800v56.9z" fill="%230ea5e9" fill-opacity="0.5"/></svg>');
-    background-size: 50% 100%; animation: waveMove 5s linear infinite;
+    position: absolute; width: 200%; height: 100%;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 88.7"><path d="M800 56.9c-155.5 0-204.9-50-405.5-49.9-200 0-250 49.9-394.5 49.9V0h800v56.9z" fill="%230ea5e9" fill-opacity="0.6"/></svg>');
+    background-size: 50% 100%; animation: waveFlow 4s linear infinite;
+  }
+  .wave.back { opacity: 0.3; animation-duration: 9s; top: -10px; animation-direction: reverse; }
+
+  /* Underwater Particles (Bubbles) */
+  .bubbles { position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; }
+  .bubble {
+    position: absolute; background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%; animation: rise 5s infinite ease-in;
   }
 
-  @keyframes waveMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes waveFlow { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes rise {
+    0% { transform: translateY(100%) scale(0.5); opacity: 0; }
+    50% { opacity: 0.3; }
+    100% { transform: translateY(-20%) scale(1.2); opacity: 0; }
+  }
 
-  .label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; z-index: 10; position: relative; letter-spacing: 0.5px; }
-  .val { font-size: 3rem; font-weight: 800; z-index: 10; position: relative; margin-top: 5px; }
+  .label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; z-index: 10; position: relative; letter-spacing: 1px; }
+  .val { font-size: 3.5rem; font-weight: 800; z-index: 10; position: relative; margin: 5px 0; }
 </style>
 </head>
 <body>
@@ -59,126 +71,98 @@
 <div class="container">
   <div class="pm-card">
     <div class="label" style="color:#64748b">Particulates</div>
-    <div class="val" id="pmPerc">0%</div>
-    <div style="font-weight:600; color:#475569">PM2.5 — <span id="pmVal">0</span> µg/m³</div>
-    <canvas id="pmCanvas" style="width:100%; height:120px; margin-top:10px"></canvas>
+    <div class="val" id="pmPerc">73%</div>
+    <div style="font-weight:600; color:#475569">PM2.5 — <span id="pmVal">11</span> µg/m³</div>
+    <canvas id="pmCanvas" style="width:100%; height:100px; margin-top:10px"></canvas>
   </div>
 
   <div class="co2-card">
     <div class="label">CO₂ Concentration</div>
-    <div class="val" id="co2Text">400</div>
+    <div class="val" id="co2Text">52</div>
     <div class="gas-outer" id="gasContainer">
         <div class="gas-blob" id="b1" style="top:20px; left:20px;"></div>
-        <div class="gas-blob" id="b2" style="top:50px; left:60px; width:80px; height:80px;"></div>
-        <div class="gas-blob" id="b3" style="top:10px; left:50px; width:110px; height:110px;"></div>
+        <div class="gas-blob" id="b2" style="top:50px; left:60px; width:130px; height:130px;"></div>
+        <div class="gas-blob" id="b3" style="top:10px; left:50px; width:150px; height:150px;"></div>
     </div>
   </div>
 
   <div class="hum-card">
     <div class="label">Humidity</div>
-    <div class="val" id="humText">0%</div>
-    <div class="water" id="water">
-        <div class="wave"></div>
-        <div class="wave" style="opacity:0.4; animation-duration: 8s; top:-25px;"></div>
+    <div class="val" id="humText">72%</div>
+    <div class="water-volume" id="water">
+        <div class="wave-wrap">
+            <div class="wave back"></div>
+            <div class="wave"></div>
+        </div>
+        <div class="bubbles">
+            <div class="bubble" style="left:10%; width:10px; height:10px; animation-delay:0s"></div>
+            <div class="bubble" style="left:30%; width:15px; height:15px; animation-delay:2s"></div>
+            <div class="bubble" style="left:70%; width:8px; height:8px; animation-delay:1s"></div>
+            <div class="bubble" style="left:85%; width:12px; height:12px; animation-delay:3.5s"></div>
+        </div>
     </div>
   </div>
 </div>
 
-<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
-  <defs>
-    <filter id="goo">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
-      <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
-      <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
-    </filter>
-  </defs>
-</svg>
+<svg style="display:none"><filter id="goo"><feGaussianBlur stdDeviation="12" /><feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 19 -9" /></filter></svg>
 
 <script>
-/* --- PM2.5 SYSTEM --- */
+/* PM2.5 Particles */
 const canvas = document.getElementById('pmCanvas');
 const ctx = canvas.getContext('2d');
 let particles = [];
-let pmCount = 20;
+let pmCount = 30;
 
 function createPM() {
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    particles = [];
-    for(let i=0; i<300; i++) {
-        particles.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            s: Math.random() * 3 + 1,
-            vx: (Math.random() - 0.5) * 0.7,
-            vy: (Math.random() - 0.5) * 0.7
-        });
-    }
+    canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+    particles = Array.from({length: 400}, () => ({
+        x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+        s: Math.random()*3+1, vx: (Math.random()-0.5)*0.8, vy: (Math.random()-0.5)*0.8
+    }));
 }
-
-function animatePM() {
+function animPM() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle = "#f39c12";
-    for(let i=0; i < pmCount; i++) {
-        let p = particles[i];
-        p.x += p.vx; p.y += p.vy;
-        if(p.x < 0) p.x = canvas.width; if(p.x > canvas.width) p.x = 0;
-        if(p.y < 0) p.y = canvas.height; if(p.y > canvas.height) p.y = 0;
+    for(let i=0; i<pmCount; i++){
+        let p = particles[i]; p.x += p.vx; p.y += p.vy;
+        if(p.x<0) p.x=canvas.width; if(p.x>canvas.width) p.x=0;
+        if(p.y<0) p.y=canvas.height; if(p.y>canvas.height) p.y=0;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI*2); ctx.fill();
     }
-    requestAnimationFrame(animatePM);
+    requestAnimationFrame(animPM);
 }
 
-/* --- CO2 SYSTEM --- */
-let blobs = [
-    {id:'b1', x:0, y:0, tx:0, ty:0},
-    {id:'b2', x:0, y:0, tx:0, ty:0},
-    {id:'b3', x:0, y:0, tx:0, ty:0}
-];
-
-function animateCO2() {
+/* CO2 Gas Movement */
+let blobs = [{id:'b1', x:0, y:0, tx:0, ty:0},{id:'b2', x:0, y:0, tx:0, ty:0},{id:'b3', x:0, y:0, tx:0, ty:0}];
+function animCO2() {
     blobs.forEach(b => {
-        if(Math.abs(b.x - b.tx) < 2) b.tx = (Math.random()-0.5) * 120;
-        if(Math.abs(b.y - b.ty) < 2) b.ty = (Math.random()-0.5) * 120;
-        b.x += (b.tx - b.x) * 0.015;
-        b.y += (b.ty - b.y) * 0.015;
+        if(Math.abs(b.x-b.tx)<2) b.tx=(Math.random()-0.5)*130;
+        if(Math.abs(b.y-b.ty)<2) b.ty=(Math.random()-0.5)*130;
+        b.x += (b.tx-b.x)*0.02; b.y += (b.ty-b.y)*0.02;
         document.getElementById(b.id).style.transform = `translate(${b.x}px, ${b.y}px)`;
     });
-    requestAnimationFrame(animateCO2);
+    requestAnimationFrame(animCO2);
 }
 
-createPM();
-animatePM();
-animateCO2();
+createPM(); animPM(); animCO2();
 
-/* --- MQTT --- */
+/* MQTT Connectivity */
 const client = mqtt.connect("wss://cd29a7c955164a079ab779cab2f382d7.s1.eu.hivemq.cloud:8884/mqtt", {
     username: "adam1234", password: "Adam1234"
 });
 client.on("connect", () => client.subscribe("esp32/sensor"));
+client.on("message", (t, m) => {
+    const d = JSON.parse(m.toString());
+    document.getElementById("pmVal").innerText = d.pm25;
+    document.getElementById("pmPerc").innerText = Math.round((d.pm25/15)*100) + "%";
+    pmCount = Math.min(d.pm25 * 8, 400);
 
-client.on("message", (topic, msg) => {
-    try {
-        const data = JSON.parse(msg.toString());
-        
-        // PM Update
-        const pm = data.pm25 || 0;
-        document.getElementById("pmVal").innerText = pm;
-        document.getElementById("pmPerc").innerText = Math.round((pm/15)*100) + "%";
-        pmCount = Math.min(pm * 6, 300);
+    document.getElementById("co2Text").innerText = d.co2;
+    const s = 0.8 + (Math.min(d.co2, 1200)/1200);
+    document.getElementById("gasContainer").style.transform = `translate(-50%, -50%) scale(${s})`;
 
-        // CO2 Update - Better scaling
-        const co2 = data.co2 || 400;
-        document.getElementById("co2Text").innerText = co2;
-        // This math ensures it's never tiny. 400ppm = scale 0.8, 1200ppm = scale 1.8
-        const scaleVal = 0.8 + (Math.min(co2, 1500) / 1500);
-        document.getElementById("gasContainer").style.transform = `translate(-50%, -50%) scale(${scaleVal})`;
-
-        // Humidity Update
-        const hum = data.hum || 0;
-        document.getElementById("humText").innerText = hum + "%";
-        document.getElementById("water").style.height = hum + "%";
-    } catch(e) {}
+    document.getElementById("humText").innerText = Math.round(d.hum) + "%";
+    document.getElementById("water").style.height = d.hum + "%";
 });
 </script>
 </body>
