@@ -16,6 +16,7 @@
   --green: #22c55e;
   --yellow: #f59e0b;
   --red: #ef4444;
+  --gray: #6b7280;
 }
 
 * { box-sizing: border-box; }
@@ -41,9 +42,7 @@ body {
   box-shadow: 0 15px 40px rgba(0,0,0,.4);
 }
 
-.title {
-  text-align: center;
-}
+.title { text-align: center; }
 
 .title h1 {
   margin: 0;
@@ -93,7 +92,6 @@ body {
 }
 
 .badge.warn { background: var(--yellow); }
-.badge.danger { background: var(--red); }
 
 .sub {
   margin-top: 10px;
@@ -115,8 +113,8 @@ footer {
   margin-top: 20px;
 }
 
-/* ALERT BUTTON */
-#enableSoundBtn {
+/* TOGGLE BUTTON */
+#alertToggle {
   position: fixed;
   bottom: 20px;
   right: 20px;
@@ -202,13 +200,11 @@ footer {
     <div class="raw" id="raw">--</div>
   </div>
 
-  <footer>
-    © 2026 Air Quality Monitoring System | ESP32 & MQTT
-  </footer>
+  <footer>© 2026 Air Quality Monitoring System</footer>
 </div>
 
-<!-- 🔊 ALERT -->
-<button id="enableSoundBtn">🔊 Enable Alerts</button>
+<!-- 🔊 TOGGLE -->
+<button id="alertToggle">🔊 Enable Alerts</button>
 <audio id="alertSound" src="alert.mp3" preload="auto"></audio>
 
 <script>
@@ -227,25 +223,34 @@ client.on("connect", () => {
   client.subscribe("esp32/sensor");
 });
 
-/* ===== ALERT SYSTEM ===== */
-let soundEnabled = false;
+/* ===== ALERT TOGGLE SYSTEM ===== */
+let alertsEnabled = false;
 let alertPlaying = false;
 
 const alertSound = document.getElementById("alertSound");
-const enableBtn = document.getElementById("enableSoundBtn");
+const toggleBtn = document.getElementById("alertToggle");
 
-enableBtn.addEventListener("click", () => {
-  alertSound.play().then(() => {
+toggleBtn.addEventListener("click", () => {
+  if (!alertsEnabled) {
+    alertSound.play().then(() => {
+      alertSound.pause();
+      alertSound.currentTime = 0;
+      alertsEnabled = true;
+      toggleBtn.textContent = "🔔 Alerts ON";
+      toggleBtn.style.background = "#22c55e";
+    });
+  } else {
+    alertsEnabled = false;
     alertSound.pause();
     alertSound.currentTime = 0;
-    soundEnabled = true;
-    enableBtn.textContent = "🔔 Alerts Enabled";
-    enableBtn.style.background = "#22c55e";
-  });
+    alertPlaying = false;
+    toggleBtn.textContent = "🔕 Alerts OFF";
+    toggleBtn.style.background = "#6b7280";
+  }
 });
 
 function checkDanger(data) {
-  if (!soundEnabled) return;
+  if (!alertsEnabled) return;
 
   const danger =
     data.pm25 > 40 ||
