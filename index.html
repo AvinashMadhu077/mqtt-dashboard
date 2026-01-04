@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MQTT Live Sensor Data</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- MQTT.js CDN -->
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #0f172a;
+        color: #e5e7eb;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+
+    .card {
+        background: #020617;
+        padding: 20px 30px;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        width: 320px;
+        text-align: center;
+    }
+
+    h2 {
+        margin-bottom: 15px;
+    }
+
+    .status {
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .data {
+        font-size: 22px;
+        font-weight: bold;
+        margin-top: 15px;
+        color: #22c55e;
+        word-wrap: break-word;
+    }
+</style>
+</head>
+<body>
+
+<div class="card">
+    <h2>ESP32 Sensor Data</h2>
+    <div class="status" id="status">Connecting...</div>
+    <div class="data" id="data">--</div>
+</div>
+
+<script>
+    // ===== MQTT CONFIG =====
+    const mqttHost = "cd29a7c955164a079ab779cab2f382d7.s1.eu.hivemq.cloud";
+    const mqttPort = 8884; // WSS PORT (IMPORTANT)
+    const mqttTopic = "esp32/sensor";
+
+    const options = {
+        username: "adam1234",
+        password: "Adam1234",
+        clean: true,
+        reconnectPeriod: 3000,
+        connectTimeout: 4000
+    };
+
+    // ===== CONNECT =====
+    const client = mqtt.connect(`wss://${mqttHost}:${mqttPort}/mqtt`, options);
+
+    const statusEl = document.getElementById("status");
+    const dataEl = document.getElementById("data");
+
+    client.on("connect", () => {
+        statusEl.innerText = "Connected to MQTT";
+        statusEl.style.color = "#22c55e";
+        client.subscribe(mqttTopic);
+    });
+
+    client.on("message", (topic, message) => {
+        dataEl.innerText = message.toString();
+    });
+
+    client.on("reconnect", () => {
+        statusEl.innerText = "Reconnecting...";
+        statusEl.style.color = "#eab308";
+    });
+
+    client.on("error", (err) => {
+        statusEl.innerText = "Connection Error";
+        statusEl.style.color = "#ef4444";
+        console.error(err);
+    });
+</script>
+
+</body>
+</html>
+
