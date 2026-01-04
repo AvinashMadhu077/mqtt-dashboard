@@ -2,105 +2,134 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<title>Air Quality Monitoring Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Air Quality Dashboard</title>
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
 <style>
 body {
-  font-family: Arial, sans-serif;
-  background: #0f172a;
-  color: white;
   margin: 0;
-  padding: 20px;
+  font-family: system-ui, sans-serif;
+  background: #0b1220;
+  color: #e5e7eb;
+}
+.container {
+  max-width: 420px;
+  margin: auto;
+  padding: 16px;
 }
 .card {
-  background: #1e293b;
-  padding: 20px;
-  border-radius: 12px;
-  margin-bottom: 15px;
+  background: #1b2435;
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.sensor {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .value {
-  font-size: 2rem;
+  font-size: 28px;
   font-weight: bold;
 }
-#alertToggle {
+.badge {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: bold;
+}
+.good { background:#22c55e; }
+.warn { background:#f59e0b; }
+.bad  { background:#ef4444; }
+
+button {
   width: 100%;
-  padding: 15px;
-  font-size: 1.1rem;
+  padding: 14px;
   border: none;
-  border-radius: 10px;
-  background: #6b7280;
-  color: white;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: bold;
   cursor: pointer;
-}
-#alertToggle.on {
-  background: #22c55e;
-}
-#alertToggle.off {
-  background: #6b7280;
+  color: white;
 }
 </style>
 </head>
 
 <body>
+<div class="container">
 
-<h1>🌍 Air Quality Monitoring</h1>
+  <div class="card">
+    <h2 style="text-align:center;margin:0">Air Quality Dashboard</h2>
+  </div>
 
-<button id="alertToggle" class="off">🔕 Alerts OFF</button>
+  <div class="card">
+    <button id="alertToggle" style="background:#6b7280">🔕 Alerts OFF</button>
+  </div>
 
-<div class="card">PM2.5: <span class="value" id="pm25">--</span></div>
-<div class="card">CO2: <span class="value" id="co2">--</span></div>
-<div class="card">CO: <span class="value" id="co">--</span></div>
-<div class="card">Temperature: <span class="value" id="temp">--</span></div>
-<div class="card">Humidity: <span class="value" id="hum">--</span></div>
-<div class="card">AQI: <span class="value" id="aqi">--</span></div>
+  <div class="card sensor">
+    <div>PM2.5</div>
+    <div class="value"><span id="pm25">--</span></div>
+  </div>
 
-<div class="card">
-  <b>Raw MQTT Data</b>
-  <pre id="raw">--</pre>
+  <div class="card sensor">
+    <div>CO₂</div>
+    <div class="value"><span id="co2">--</span></div>
+  </div>
+
+  <div class="card sensor">
+    <div>CO</div>
+    <div class="value"><span id="co">--</span></div>
+  </div>
+
+  <div class="card sensor">
+    <div>Temperature</div>
+    <div class="value"><span id="temp">--</span></div>
+  </div>
+
+  <div class="card sensor">
+    <div>Humidity</div>
+    <div class="value"><span id="hum">--</span></div>
+  </div>
+
+  <div class="card sensor">
+    <div>Overall AQI</div>
+    <div class="value"><span id="aqi">--</span></div>
+  </div>
+
 </div>
 
-<p id="status">Connecting to MQTT…</p>
-
-<!-- 🔊 ALERT SOUND -->
 <audio id="alertSound" src="alert.mp3" preload="auto"></audio>
 
 <script>
-/* ===== MQTT CONFIG ===== */
-const MQTT_URL = "wss://cd29a7c955164a079ab779cab2f382d7.s1.eu.hivemq.cloud:8884/mqtt";
-const MQTT_OPTIONS = {
-  username: "adam1234",
-  password: "Adam1234",
-  reconnectPeriod: 3000
-};
+/* ===== MQTT ===== */
+const client = mqtt.connect(
+  "wss://cd29a7c955164a079ab779cab2f382d7.s1.eu.hivemq.cloud:8884/mqtt",
+  {
+    username: "adam1234",
+    password: "Adam1234",
+    reconnectPeriod: 3000
+  }
+);
 
-/* ===== ELEMENTS ===== */
-const pm25 = document.getElementById("pm25");
-const co2 = document.getElementById("co2");
-const co = document.getElementById("co");
-const temp = document.getElementById("temp");
-const hum = document.getElementById("hum");
-const aqi = document.getElementById("aqi");
-const raw = document.getElementById("raw");
-const status = document.getElementById("status");
+client.on("connect", () => {
+  client.subscribe("esp32/sensor");
+});
 
-const alertSound = document.getElementById("alertSound");
-const alertToggle = document.getElementById("alertToggle");
-
-/* ===== ALERT STATE ===== */
+/* ===== ALERT SYSTEM ===== */
 let alertsEnabled = false;
 let alertPlaying = false;
 
-/* ===== ALERT TOGGLE (iOS SAFE) ===== */
-alertToggle.addEventListener("click", () => {
+const alertSound = document.getElementById("alertSound");
+const toggleBtn = document.getElementById("alertToggle");
+
+toggleBtn.addEventListener("click", () => {
   alertsEnabled = !alertsEnabled;
 
   if (alertsEnabled) {
-    alertToggle.textContent = "🔔 Alerts ON";
-    alertToggle.classList.remove("off");
-    alertToggle.classList.add("on");
+    toggleBtn.textContent = "🔔 Alerts ON";
+    toggleBtn.style.background = "#22c55e";
 
     // unlock audio for iOS
     alertSound.play().then(() => {
@@ -108,52 +137,34 @@ alertToggle.addEventListener("click", () => {
       alertSound.currentTime = 0;
     }).catch(() => {});
   } else {
-    alertToggle.textContent = "🔕 Alerts OFF";
-    alertToggle.classList.remove("on");
-    alertToggle.classList.add("off");
-
+    toggleBtn.textContent = "🔕 Alerts OFF";
+    toggleBtn.style.background = "#6b7280";
     alertSound.pause();
     alertSound.currentTime = 0;
     alertPlaying = false;
   }
 });
 
-/* ===== MQTT CONNECT ===== */
-const client = mqtt.connect(MQTT_URL, MQTT_OPTIONS);
-
-client.on("connect", () => {
-  status.textContent = "✅ Connected to HiveMQ";
-  client.subscribe("esp32/sensor");
-});
-
-client.on("message", (topic, message) => {
-  const data = JSON.parse(message.toString());
-
-  pm25.textContent = data.pm25;
-  co2.textContent = data.co2;
-  co.textContent = data.co;
-  temp.textContent = data.temp;
-  hum.textContent = data.hum;
-  aqi.textContent = data.aqi;
-  raw.textContent = message.toString();
-
-  checkDanger(data);
-});
-
-/* ===== DANGER CHECK ===== */
 function checkDanger(data) {
   if (!alertsEnabled) return;
 
+  const pm25 = Number(data.pm25) || 0;
+  const co   = Number(data.co)   || 0;
+  const temp = Number(data.temp) || 0;
+  const co2  = Number(data.co2)  || 0;
+  const hum  = Number(data.hum)  || 0;
+
   const danger =
-    data.pm25 > 40 ||
-    data.co > 40 ||
-    data.temp > 40 ||
-    data.co2 > 80;
+    pm25 > 40 ||
+    co > 40 ||
+    temp > 40 ||
+    co2 > 80 ||
+    hum > 80;
 
   if (danger && !alertPlaying) {
     alertPlaying = true;
     alertSound.loop = true;
-    alertSound.play().catch(() => {});
+    alertSound.play().catch(()=>{});
   }
 
   if (!danger && alertPlaying) {
@@ -162,6 +173,25 @@ function checkDanger(data) {
     alertPlaying = false;
   }
 }
+
+/* ===== MQTT DATA ===== */
+client.on("message", (topic, msg) => {
+  const data = JSON.parse(msg.toString());
+
+  pm25.textContent = Number(data.pm25) || 0;
+  co2.textContent  = Number(data.co2)  || 0;
+  co.textContent   = Number(data.co)   || 0;
+  temp.textContent = Number(data.temp) || 0;
+  hum.textContent  = Number(data.hum)  || 0;
+
+  aqi.textContent = Math.max(
+    Number(data.pm25) || 0,
+    (Number(data.co2) || 0) / 10,
+    (Number(data.co) || 0) * 5
+  ).toFixed(0);
+
+  checkDanger(data);
+});
 </script>
 
 </body>
